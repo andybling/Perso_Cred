@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Couleurs Société Générale
+# Couleurs MOUAHA HANDY YVES
 SG_RED = "#E60028"
 SG_BLACK = "#000000"
 SG_WHITE = "#FFFFFF"
@@ -455,7 +455,7 @@ def init_session_state():
 def login_page():
     st.markdown('<div class="sg-logo">🤷‍♂️</div>', unsafe_allow_html=True)
     st.markdown('<h1 style="text-align: center; color: #E60028; font-weight: 800; font-size: 2.2em;">CHURN</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 1.1em;">Finance Hub - Portail Sécurisé</p>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 1.1em;">CHURN - Portail Sécurisé</p>', unsafe_allow_html=True)
     
     username = st.text_input("👤 Identifiant", placeholder="Entrez votre identifiant", key="login_username")
     password = st.text_input("🔒 Mot de passe", type="password", placeholder="Entrez votre mot de passe", key="login_password")
@@ -1021,8 +1021,8 @@ def main():
             st.markdown("---")
             st.markdown("""
             <div style="text-align: center; opacity: 0.7; font-size: 0.85em; margin-top: 30px;">
-                <p>Société Générale</p>
-                <p>Finance Hub v2.0</p>
+                <p>MOUAHA HANDY YVES</p>
+                <p>CHURN v2.0</p>
                 <p>© 2025</p>
             </div>
             """, unsafe_allow_html=True)
@@ -1031,7 +1031,7 @@ def main():
         st.markdown(f"""
         <div style="background: linear-gradient(135deg, {SG_BLACK}, {SG_RED}); color: white; 
                     padding: 25px 30px; border-radius: 18px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-            <h2 style="margin: 0; font-weight: 800; font-size: 1.8em;">🏦 Société Générale Finance Hub</h2>
+            <h2 style="margin: 0; font-weight: 800; font-size: 1.8em;">🏦 MOUAHA HANDY YVES CHURN</h2>
             <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 1.05em;">
                 Bienvenue, <strong>{st.session_state.username}</strong> • {datetime.now().strftime('%A %d %B %Y • %H:%M')}
             </p>
