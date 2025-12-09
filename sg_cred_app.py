@@ -621,7 +621,7 @@ st.markdown("""
         </div>
     </div>
     <div class="brand-tagline">
-        Votre partenaire de confiance<br>pour un avenir financier serein
+        Votre partenaire de confiance<br>La DIRECTION INNOVATION
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1535,13 +1535,14 @@ with st.expander("📚 Informations Légales & Techniques", expanded=False):
 st.markdown("""
 <div class="footer">
     <p>
-        <strong>SGBCI - Gestionnaire de Prêt Professionnel v5.0</strong> • 
+        <strong>SGCI - Gestionnaire de Prêt Professionnel v5.0</strong> • 
         Conforme à la POC du Personnel • 
-        © 2025 Société Générale de Banques en Côte d'Ivoire
+        © 2025 Société Générale Côte d'Ivoire
     </p>
     <p style="font-size: 0.8rem; color: #6C757D;">
         Les informations fournies sont à titre indicatif et ne constituent pas une offre de prêt.<br>
         Consultez votre conseiller financier pour une analyse personnalisée.
     </p>
 </div>
+
 """, unsafe_allow_html=True)
