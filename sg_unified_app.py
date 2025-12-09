@@ -478,14 +478,8 @@ def login_page():
     with st.expander("📋 Comptes de démonstration", expanded=False):
         st.markdown("""
         <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
-        <b>👨‍💼 Administrateur:</b><br>
-        • Identifiant: <code>admin</code> | Mot de passe: <code>admin123</code><br><br>
-        
         <b>👤 Ressources Humaines:</b><br>
         • Identifiant: <code>rh</code> | Mot de passe: <code>rh2025</code><br><br>
-        
-        <b>💳 Analyste Crédit:</b><br>
-        • Identifiant: <code>credit</code> | Mot de passe: <code>credit2024</code>
         </div>
         """, unsafe_allow_html=True)
 
