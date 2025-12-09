@@ -10,8 +10,8 @@ from io import BytesIO
 # ═══════════════════════════════════════════════════════════════
 
 st.set_page_config(
-    page_title="Société Générale - Finance Hub",
-    page_icon="🏦",
+    page_title="CHURN",
+    page_icon="😒",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -438,7 +438,7 @@ def apply_custom_css():
 
 USERS = {
     "admin": {"password": "admin123", "role": "Administrateur", "modules": ["salary", "loan"]},
-    "rh": {"password": "rh2024", "role": "Ressources Humaines", "modules": ["salary"]},
+    "rh": {"password": "rh2025", "role": "Ressources Humaines", "modules": ["salary"]},
     "credit": {"password": "credit2024", "role": "Analyste Crédit", "modules": ["loan"]},
 }
 
@@ -453,9 +453,8 @@ def init_session_state():
         st.session_state.user_modules = []
 
 def login_page():
-    st.markdown('<div class="login-container">', unsafe_allow_html=True)
-    st.markdown('<div class="sg-logo">🏦</div>', unsafe_allow_html=True)
-    st.markdown('<h1 style="text-align: center; color: #E60028; font-weight: 800; font-size: 2.2em;">Société Générale</h1>', unsafe_allow_html=True)
+    st.markdown('<div class="sg-logo">🤷‍♂️</div>', unsafe_allow_html=True)
+    st.markdown('<h1 style="text-align: center; color: #E60028; font-weight: 800; font-size: 2.2em;">CHURN</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 1.1em;">Finance Hub - Portail Sécurisé</p>', unsafe_allow_html=True)
     
     username = st.text_input("👤 Identifiant", placeholder="Entrez votre identifiant", key="login_username")
@@ -483,7 +482,7 @@ def login_page():
         • Identifiant: <code>admin</code> | Mot de passe: <code>admin123</code><br><br>
         
         <b>👤 Ressources Humaines:</b><br>
-        • Identifiant: <code>rh</code> | Mot de passe: <code>rh2024</code><br><br>
+        • Identifiant: <code>rh</code> | Mot de passe: <code>rh2025</code><br><br>
         
         <b>💳 Analyste Crédit:</b><br>
         • Identifiant: <code>credit</code> | Mot de passe: <code>credit2024</code>
@@ -1071,7 +1070,7 @@ def main():
         st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
         st.markdown("""
         <div style="text-align: center; color: #666; font-size: 0.9em; padding: 20px;">
-            <p>🏦 <strong>Société Générale</strong> • Application confidentielle • Tous droits réservés</p>
+            <p>🏦 <strong>MOUAHA HANDY YVES</strong> • Application confidentielle • Tous droits réservés</p>
         </div>
         """, unsafe_allow_html=True)
 
