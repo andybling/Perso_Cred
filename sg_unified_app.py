@@ -439,7 +439,7 @@ def apply_custom_css():
 USERS = {
     "admin": {"password": "admin123", "role": "Administrateur", "modules": ["salary", "loan"]},
     "rh": {"password": "rh2025", "role": "Ressources Humaines", "modules": ["salary"]},
-    "credit": {"password": "credit2024", "role": "Analyste Crédit", "modules": ["loan"]},
+    "credit": {"password": "credit2025", "role": "Analyste Crédit", "modules": ["loan"]},
 }
 
 def init_session_state():
@@ -1023,7 +1023,7 @@ def main():
             <div style="text-align: center; opacity: 0.7; font-size: 0.85em; margin-top: 30px;">
                 <p>Société Générale</p>
                 <p>Finance Hub v2.0</p>
-                <p>© 2024</p>
+                <p>© 2025</p>
             </div>
             """, unsafe_allow_html=True)
         
