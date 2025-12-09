@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 
 # Configuration de la page
 st.set_page_config(
-    page_title="SGBCI - Gestionnaire de Prêt Personnel",
+    page_title="SGCI - Gestionnaire de Prêt Personnel",
     page_icon="💸",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -630,10 +630,10 @@ st.markdown("""
 with st.container():
     st.markdown("""
     <div class="balloon">
-        <strong>💎 CALCUL DE REVENU CLIENT</strong><br>
+        <strong>------💎 CALCUL DE REVENU CLIENT</strong><br>
         Le revenu pris en compte est calculé comme suit :<br>
         <strong>Salaire + (80% × Revenu Locatif) + (50% × Revenu Agricole)</strong><br>
-        Conforme aux normes bancaires internationales.
+        Conforme a la POC du Personnel valide.
     </div>
     """, unsafe_allow_html=True)
 
@@ -1546,3 +1546,4 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
