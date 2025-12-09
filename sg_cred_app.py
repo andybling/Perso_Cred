@@ -8,15 +8,14 @@ from dateutil.relativedelta import relativedelta
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Gestionnaire de Prêt Pour le Personnel",
+    page_title="SGBCI - Gestionnaire de Prêt Personnel",
     page_icon="💸",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # CSS personnalisé - Charte graphique professionnelle avec effets
-st.markdown("""
-<style>
+st.markdown("""<style>
     /* Variables de couleurs */
     :root {
         --primary-red: #C41E3A;
@@ -29,6 +28,8 @@ st.markdown("""
         --success: #28A745;
         --warning: #FFC107;
         --danger: #DC3545;
+        --sg-red: #C41E3A;
+        --sg-dark-red: #8B0000;
     }
     
     /* Reset et base */
@@ -37,45 +38,179 @@ st.markdown("""
         font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     }
     
-    /* En-tête avec effet glassmorphism */
-    .header-container {
+    /* Logo et header unifiés */
+    .brand-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
         border-bottom: 3px solid var(--primary-red);
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         border-radius: 0 0 15px 15px;
-        padding: 25px 40px;
-        margin-bottom: 30px;
+        padding: 15px 40px;
+        margin-bottom: 25px;
         position: relative;
         overflow: hidden;
     }
     
-    .header-container::before {
+    .brand-container::before {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, var(--primary-red), #FF6B6B);
+        background: linear-gradient(90deg, var(--primary-red), var(--sg-dark-red));
+    }
+    
+    .logo-section {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .logo-section img {
+        max-height: 50px;
+        width: auto;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+    
+    .brand-title {
+        flex-grow: 1;
+        text-align: center;
     }
     
     .main-title {
         color: var(--primary-black);
-        font-size: 2.2rem;
+        font-size: 1.8rem;
         font-weight: 700;
-        margin-bottom: 8px;
-        background: linear-gradient(90deg, var(--primary-red), #A01830);
+        margin-bottom: 5px;
+        background: linear-gradient(90deg, var(--primary-red), var(--sg-dark-red));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        text-shadow: 0 2px 10px rgba(196, 30, 58, 0.1);
     }
     
     .subtitle {
         color: var(--gray-dark);
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 400;
-        letter-spacing: 0.5px;
+    }
+    
+    .brand-tagline {
+        font-size: 0.85rem;
+        color: #6C757D;
+        text-align: right;
+        font-style: italic;
+    }
+    
+    /* Chatbot button */
+    .chatbot-button {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, var(--primary-red), var(--sg-dark-red));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 25px rgba(196, 30, 58, 0.4);
+        z-index: 1000;
+        transition: all 0.3s ease;
+        border: 3px solid white;
+    }
+    
+    .chatbot-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 30px rgba(196, 30, 58, 0.6);
+    }
+    
+    .chatbot-icon {
+        color: white;
+        font-size: 30px;
+    }
+    
+    /* Video modal */
+    .video-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        max-width: 800px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        z-index: 2000;
+        display: none;
+        overflow: hidden;
+    }
+    
+    .video-modal.active {
+        display: block;
+        animation: modalAppear 0.3s ease;
+    }
+    
+    @keyframes modalAppear {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+    
+    .video-header {
+        background: linear-gradient(135deg, var(--primary-red), var(--sg-dark-red));
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .video-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+    
+    .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .close-btn:hover {
+        transform: rotate(90deg);
+    }
+    
+    .video-container {
+        padding: 20px;
+        background: #000;
+    }
+    
+    /* Overlay */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1999;
+        display: none;
+    }
+    
+    .modal-overlay.active {
+        display: block;
     }
     
     /* Cartes avec effets de survol */
@@ -104,7 +239,7 @@ st.markdown("""
         left: 0;
         width: 4px;
         height: 100%;
-        background: var(--primary-red);
+        background: linear-gradient(to bottom, var(--primary-red), var(--sg-dark-red));
         opacity: 0;
         transition: opacity 0.3s;
     }
@@ -121,6 +256,8 @@ st.markdown("""
         display: flex;
         align-items: center;
         gap: 10px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--light-red);
     }
     
     .card-title i {
@@ -129,7 +266,7 @@ st.markdown("""
     
     /* Boutons avec effets */
     .stButton button {
-        background: linear-gradient(135deg, var(--primary-red), var(--dark-red));
+        background: linear-gradient(135deg, var(--primary-red), var(--sg-dark-red));
         color: var(--white) !important;
         border: none !important;
         border-radius: 8px !important;
@@ -190,7 +327,7 @@ st.markdown("""
     }
     
     .dataframe th {
-        background: linear-gradient(135deg, var(--primary-red), var(--dark-red)) !important;
+        background: linear-gradient(135deg, var(--primary-red), var(--sg-dark-red)) !important;
         color: var(--white) !important;
         font-weight: 600 !important;
         padding: 15px !important;
@@ -217,10 +354,12 @@ st.markdown("""
         border: 1px solid rgba(0, 0, 0, 0.08);
         box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
         transition: transform 0.3s;
+        border-top: 4px solid var(--primary-red);
     }
     
     .metric-card:hover {
         transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     }
     
     .metric-value {
@@ -314,7 +453,7 @@ st.markdown("""
     }
     
     .stTabs [aria-selected="true"] {
-        background: var(--primary-red) !important;
+        background: linear-gradient(135deg, var(--primary-red), var(--sg-dark-red)) !important;
         color: white !important;
         box-shadow: 0 2px 10px rgba(196, 30, 58, 0.3) !important;
     }
@@ -340,6 +479,7 @@ st.markdown("""
         background: var(--white);
         padding: 5px;
         border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
     
     @keyframes float {
@@ -354,7 +494,6 @@ st.markdown("""
         border-radius: 20px;
         font-size: 0.85rem;
         font-weight: 600;
-        margin-left: 10px;
     }
     
     .status-success {
@@ -387,7 +526,7 @@ st.markdown("""
     
     .progress-bar {
         height: 100%;
-        background: linear-gradient(90deg, var(--primary-red), #FF6B6B);
+        background: linear-gradient(90deg, var(--primary-red), var(--sg-dark-red));
         border-radius: 10px;
         transition: width 1s ease-in-out;
     }
@@ -397,12 +536,106 @@ st.markdown("""
         text-align: center;
         padding: 30px;
         margin-top: 50px;
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        border-top: 2px solid var(--light-red);
         color: var(--gray-dark);
         font-size: 0.9rem;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 10px 10px 0 0;
     }
-</style>
+    
+    /* Badges */
+    .sg-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        background: linear-gradient(135deg, var(--primary-red), var(--sg-dark-red));
+        color: white;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    /* Section séparateurs */
+    .section-separator {
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary-red), transparent);
+        margin: 30px 0;
+        border: none;
+    }
+</style>""", unsafe_allow_html=True)
+
+# HTML pour le chatbot et la vidéo
+st.markdown("""
+<div id="chatbot-container">
+    <div class="chatbot-button" onclick="showVideoModal()">
+        <span class="chatbot-icon">🤖</span>
+    </div>
+</div>
+
+<div id="video-modal" class="video-modal">
+    <div class="video-header">
+        <h3>📺 Tutoriel SGBCI - Utilisation du simulateur</h3>
+        <button class="close-btn" onclick="hideVideoModal()">×</button>
+    </div>
+    <div class="video-container">
+        <iframe width="100%" height="450" src="https://www.youtube.com/embed/sac6_7QxNLg?autoplay=1" 
+                title="Tutoriel SGBCI" frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+        </iframe>
+    </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay" onclick="hideVideoModal()"></div>
+
+<script>
+    function showVideoModal() {
+        document.getElementById('video-modal').classList.add('active');
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+    
+    function hideVideoModal() {
+        document.getElementById('video-modal').classList.remove('active');
+        document.getElementById('modal-overlay').classList.remove('active');
+    }
+    
+    // Auto-ouvrir la vidéo au chargement de la page
+    window.onload = function() {
+        setTimeout(function() {
+            showVideoModal();
+        }, 1500); // Délai de 1.5 seconde
+    };
+</script>
 """, unsafe_allow_html=True)
+
+# Interface principale harmonisée
+st.markdown("""
+<div class="brand-container">
+    <div class="logo-section">
+        <img src="https://particuliers.societegenerale.ci/fileadmin/user_upload/logos/SGBCI103_2025.svg" 
+             alt="SGBCI Logo" 
+             onerror="this.onerror=null; this.src='https://via.placeholder.com/200x50?text=SGBCI+Logo'">
+        <div class="brand-title">
+            <h1 class="main-title">OCTROI DE CREDIT POUR LE PERSONNEL</h1>
+            <p class="subtitle">Simulateur d'Échéancier & Analyse Financière</p>
+        </div>
+    </div>
+    <div class="brand-tagline">
+        Votre partenaire de confiance<br>pour un avenir financier serein
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Ballon d'information initial
+with st.container():
+    st.markdown("""
+    <div class="balloon">
+        <strong>💎 CALCUL DE REVENU CLIENT</strong><br>
+        Le revenu pris en compte est calculé comme suit :<br>
+        <strong>Salaire + (80% × Revenu Locatif) + (50% × Revenu Agricole)</strong><br>
+        Conforme aux normes bancaires internationales.
+    </div>
+    """, unsafe_allow_html=True)
 
 # Fonctions de conversion numérique en lettres professionnelles
 def convertir_millions_en_lettres(nombre):
@@ -721,30 +954,13 @@ def creer_graphique_repartition(df):
     
     return fig
 
-# Interface principale
-st.markdown("""
-<div class="header-container">
-    <h1 class="main-title">👨🏿‍💻 OCTROI DE CREDIT POUR LE PERSONNEL</h1>
-    <p class="subtitle">Analyse Financière & Simulation d'Échéancier</p>
-</div>
-""", unsafe_allow_html=True)
-
-# Ballon d'information initial
-with st.container():
-    st.markdown("""
-    <div class="balloon">
-        <strong>--------💎CALCUL DE REVENU CLIENT</strong><br>
-        Le revenu pris en compte est calculé comme suit :<br>
-        <strong>Salaire + (80% × Revenu Locatif) + (50% × Revenu Agricole)</strong><br>
-        Conforme aux normes bancaires internationales.
-    </div>
-    """, unsafe_allow_html=True)
-
 # Initialisation des variables de session
 if 'calcul_realise' not in st.session_state:
     st.session_state.calcul_realise = False
 if 'resultats' not in st.session_state:
     st.session_state.resultats = None
+if 'duree_mois' not in st.session_state:
+    st.session_state.duree_mois = None
 
 # SECTION 1: PARAMÈTRES DU PRÊT
 st.markdown("""
@@ -770,7 +986,7 @@ with col1:
         with col1b:
             statut = st.selectbox(
                 "Statut professionnel",
-                ["Salarié"]#, "Fonctionnaire", "Commerçant", "Agriculteur", "Autre"
+                ["Salarié"]
             )
             autres_engagements = st.number_input("Autres engagements (FCFA)",
                                                min_value=0,
@@ -891,6 +1107,7 @@ with col_btn2:
         with st.spinner("Analyse financière en cours..."):
             # Calcul de l'échéancier
             duree_mois = duree_annees * 12
+            st.session_state.duree_mois = duree_mois
             resultats = calculer_echeancier(
                 montant=montant_pret,
                 taux_interet_annuel=taux_interet/100,
@@ -911,6 +1128,7 @@ with col_btn2:
 # Affichage des résultats si calcul réalisé
 if st.session_state.calcul_realise and st.session_state.resultats:
     resultats = st.session_state.resultats
+    duree_mois = st.session_state.duree_mois
     
     # SECTION 2: SYNTHÈSE FINANCIÈRE
     st.markdown("""
@@ -1317,9 +1535,9 @@ with st.expander("📚 Informations Légales & Techniques", expanded=False):
 st.markdown("""
 <div class="footer">
     <p>
-        <strong>Gestionnaire de Prêt Professionnel v4.0</strong> • 
+        <strong>SGBCI - Gestionnaire de Prêt Professionnel v5.0</strong> • 
         Conforme à la POC du Personnel • 
-        © 2025 Tous droits réservés
+        © 2025 Société Générale de Banques en Côte d'Ivoire
     </p>
     <p style="font-size: 0.8rem; color: #6C757D;">
         Les informations fournies sont à titre indicatif et ne constituent pas une offre de prêt.<br>
