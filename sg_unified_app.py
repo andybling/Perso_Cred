@@ -437,8 +437,9 @@ def apply_custom_css():
 # ═══════════════════════════════════════════════════════════════
 
 USERS = {
-    #"admin": {"password": "admin123", "role": "Administrateur", "modules": ["salary", "loan"]},
-    "rh": {"password": "rh2025", "role": "Ressources Humaines", "modules": ["salary"]}#,"credit": {"password": "credit2024", "role": "Analyste Crédit", "modules": ["loan"]},
+    "admin": {"password": "admin123", "role": "Administrateur", "modules": ["salary", "loan"]},
+    "rh": {"password": "rh2024", "role": "Ressources Humaines", "modules": ["salary"]},
+    "credit": {"password": "credit2024", "role": "Analyste Crédit", "modules": ["loan"]},
 }
 
 def init_session_state():
@@ -667,6 +668,405 @@ def module_simulation_salaire():
 # 💳 MODULE 2: SIMULATION PRÊT (Mensualité Constante)
 # ═══════════════════════════════════════════════════════════════
 
+# Groupes basés sur le REVENU client (et non le montant du prêt)
+INCOME_GROUPS = [
+    {'max_income': 250000, 'group': 'Groupe 1', 'max_ratio': 0.35, 'color': '#10B981'},
+    {'max_income': 450000, 'group': 'Groupe 2', 'max_ratio': 0.37, 'color': '#3B82F6'},
+    {'max_income': 1000000, 'group': 'Groupe 3', 'max_ratio': 0.40, 'color': '#8B5CF6'},
+    {'max_income': 2000000, 'group': 'Groupe 4', 'max_ratio': 0.42, 'color': '#F59E0B'},
+    {'max_income': float('inf'), 'group': 'Groupe 5', 'max_ratio': 0.45, 'color': '#E60028'}
+]
+
+def get_client_group(income):
+    """Détermine le groupe du client basé sur son revenu"""
+    for group_info in INCOME_GROUPS:
+        if income <= group_info['max_income']:
+            return group_info
+    return INCOME_GROUPS[-1]
+
+def calculate_constant_payment(loan_amount, annual_rate, duration_months):
+    """Calcule la mensualité CONSTANTE selon la formule standard"""
+    if loan_amount <= 0 or annual_rate <= 0 or duration_months <= 0:
+        return 0
+    
+    monthly_rate = annual_rate / 12
+    
+    # Formule de l'annuité constante: M = C * [i(1+i)^n] / [(1+i)^n - 1]
+    payment = loan_amount * (monthly_rate * (1 + monthly_rate)**duration_months) / ((1 + monthly_rate)**duration_months - 1)
+    
+    return payment
+
+def calculate_amortization_schedule_constant(loan_amount, interest_rate, insurance_rate, duration_years, first_date):
+    """Calcule le tableau d'amortissement avec MENSUALITÉ CONSTANTE"""
+    
+    duration_months = duration_years * 12
+    tps_rate = 0.10  # 10% TPS
+    
+    # Taux global (intérêt + assurance)
+    global_rate = interest_rate + insurance_rate
+    
+    # Calcul de la mensualité CONSTANTE (capital + intérêts + assurance)
+    monthly_payment_base = calculate_constant_payment(loan_amount, global_rate, duration_months)
+    
+    schedule = []
+    remaining_capital = loan_amount
+    
+    for month in range(1, duration_months + 1):
+        # Date de paiement
+        payment_date = first_date + timedelta(days=30 * (month - 1))
+        
+        # Intérêts sur le capital restant
+        interest = remaining_capital * (interest_rate / 12)
+        
+        # Assurance sur le capital restant
+        insurance = remaining_capital * (insurance_rate / 12)
+        
+        # Amortissement (capital remboursé) = mensualité base - intérêts - assurance
+        principal = monthly_payment_base - interest - insurance
+        
+        # Ajustement pour le dernier mois (éviter les arrondis négatifs)
+        if month == duration_months:
+            principal = remaining_capital
+            monthly_payment_base = principal + interest + insurance
+        
+        # TPS sur le total
+        tps = monthly_payment_base * tps_rate
+        
+        # Mensualité totale TTC
+        total_payment = monthly_payment_base + tps
+        
+        # Mise à jour du capital restant
+        remaining_capital -= principal
+        
+        schedule.append({
+            'N°': month,
+            'Date': payment_date.strftime('%d/%m/%Y'),
+            'Principal': round(principal, 2),
+            'Intérêts': round(interest, 2),
+            'Assurance': round(insurance, 2),
+            'Sous-total HT': round(monthly_payment_base, 2),
+            'TPS (10%)': round(tps, 2),
+            'Mensualité TTC': round(total_payment, 2),
+            'Capital Restant': round(max(0, remaining_capital), 2)
+        })
+    
+    return pd.DataFrame(schedule)
+
+def get_risk_assessment(debt_ratio, max_ratio):
+    """Évalue le niveau de risque"""
+    if debt_ratio <= max_ratio * 0.85:
+        return "FAIBLE", "🟢", "risk-low"
+    elif debt_ratio <= max_ratio:
+        return "MODÉRÉ", "🟡", "risk-medium"
+    else:
+        return "ÉLEVÉ", "🔴", "risk-high"
+
+def module_simulation_pret():
+    st.markdown('<div class="sg-header"><h1>💳 Simulateur de Prêt Personnel</h1><p>Calculez votre capacité d\'emprunt avec mensualités constantes et groupe basé sur revenus</p></div>', unsafe_allow_html=True)
+    
+    # Section Inputs
+    st.markdown('<p class="section-header">📋 Paramètres du Prêt</p>', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("### 💰 Montant & Revenus")
+        client_income = st.number_input("💵 Revenu mensuel net (FCFA)", value=1500000, step=50000, 
+                                       help="Votre revenu mensuel net - détermine votre groupe")
+        loan_amount = st.number_input("🏦 Montant du prêt (FCFA)", value=10000000, step=100000,
+                                     help="Montant que vous souhaitez emprunter")
+    
+    with col2:
+        st.markdown("### ⏱️ Durée & Taux")
+        duration_years = st.slider("📅 Durée du prêt (années)", 1, 30, 7,
+                                   help="Durée de remboursement en années")
+        interest_rate = st.number_input("📊 Taux d'intérêt annuel (%)", value=3.5, step=0.1,
+                                       help="Taux d'intérêt annuel nominal") / 100
+        insurance_rate = st.number_input("🛡️ Taux d'assurance annuel (%)", value=1.1, step=0.1,
+                                        help="Taux d'assurance décès-invalidité") / 100
+    
+    with col3:
+        st.markdown("### 📅 Première Échéance")
+        first_date = st.date_input("🗓️ Date du 1er prélèvement", value=datetime.now().date(),
+                                   help="Date de début des remboursements")
+        
+        # Affichage du groupe client
+        if client_income > 0:
+            group_info = get_client_group(client_income)
+            st.markdown(f'''
+            <div style="background: linear-gradient(135deg, {group_info['color']}, {group_info['color']}dd); 
+                        padding: 15px; border-radius: 12px; margin-top: 15px; color: white; text-align: center;">
+                <div style="font-size: 1.1em; font-weight: 700; margin-bottom: 5px;">
+                    {group_info['group']}
+                </div>
+                <div style="font-size: 1.4em; font-weight: 800;">
+                    Ratio max: {group_info['max_ratio']*100:.0f}%
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+    
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+    
+    if st.button("🔍 CALCULER LE PRÊT", width='stretch'):
+        if loan_amount > 0 and client_income > 0:
+            
+            # Détermination du groupe
+            group_info = get_client_group(client_income)
+            
+            # Calcul des valeurs
+            duration_months = duration_years * 12
+            processing_fee = min(loan_amount * 0.015, 150000)
+            
+            # Calcul de la mensualité CONSTANTE
+            global_rate = interest_rate + insurance_rate
+            monthly_payment_base = calculate_constant_payment(loan_amount, global_rate, duration_months)
+            tps = monthly_payment_base * 0.10
+            monthly_payment_total = monthly_payment_base
+            
+            # Taux d'endettement
+            debt_ratio = (monthly_payment_total / client_income) * 100
+            max_ratio = group_info['max_ratio'] * 100
+            
+            # Capacité d'emprunt théorique
+            max_payment = client_income * group_info['max_ratio']
+            max_loan = (max_payment * ((1 + global_rate/12)**duration_months - 1)) / (global_rate/12 * (1 + global_rate/12)**duration_months)
+            
+            # Évaluation du risque
+            risk_level, risk_emoji, risk_class = get_risk_assessment(debt_ratio, max_ratio)
+            
+            # Génération du tableau d'amortissement
+            schedule = calculate_amortization_schedule_constant(loan_amount, interest_rate, insurance_rate, duration_years, first_date)
+            
+            total_paid = schedule['Mensualité TTC'].sum()
+            total_interest = schedule['Intérêts'].sum()
+            total_insurance = schedule['Assurance'].sum()
+            total_tps = schedule['TPS (10%)'].sum()
+            total_cost = total_interest + total_insurance + total_tps
+            
+            # Section Résultats
+            st.markdown('<p class="section-header">📊 Résultats de la Simulation</p>', unsafe_allow_html=True)
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.markdown(f'''<div class="metric-card">
+                    <div class="metric-label">Mensualité Constante</div>
+                    <div class="metric-value">{monthly_payment_total:,.0f}</div>
+                    <p class="metric-subtitle">FCFA • Sur {duration_months} mois</p>
+                </div>''', unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f'''<div class="metric-card">
+                    <div class="metric-label">Total à Rembourser</div>
+                    <div class="metric-value">{total_paid:,.0f}</div>
+                    <p class="metric-subtitle">FCFA • Capital + coûts</p>
+                </div>''', unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown(f'''<div class="metric-card">
+                    <div class="metric-label">Coût Total du Crédit</div>
+                    <div class="metric-value">{total_cost:,.0f}</div>
+                    <p class="metric-subtitle">FCFA • Intérêts + assurance + TPS</p>
+                </div>''', unsafe_allow_html=True)
+            
+            with col4:
+                st.markdown(f'''<div class="metric-card">
+                    <div class="metric-label">Taux d'Endettement</div>
+                    <div class="metric-value">{risk_emoji} {debt_ratio:.1f}%</div>
+                    <p class="metric-subtitle">{risk_level} • Max {max_ratio:.0f}%</p>
+                </div>''', unsafe_allow_html=True)
+            
+            # Barre de progression endettement
+            st.markdown(f'''
+            <div style="margin: 25px 0;">
+                <p style="font-weight: 700; font-size: 1.1em; color: #333; margin-bottom: 10px;">
+                    Taux d'endettement : {debt_ratio:.1f}% / {max_ratio:.0f}% maximum pour votre groupe
+                </p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {min(debt_ratio/max_ratio*100, 100)}%; 
+                         background: linear-gradient(90deg, {'#10B981' if debt_ratio <= max_ratio*0.85 else '#F59E0B' if debt_ratio <= max_ratio else '#EF4444'}, 
+                         {'#059669' if debt_ratio <= max_ratio*0.85 else '#D97706' if debt_ratio <= max_ratio else '#DC2626'});"></div>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+            
+            st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+            
+            # Détails et Analyse
+            col1, col2 = st.columns([1, 1.2])
+            
+            with col1:
+                st.markdown('<p class="section-header">💡 Détails du Prêt</p>', unsafe_allow_html=True)
+                
+                details = [
+                    ("💰 Capital emprunté", f"{loan_amount:,.0f} FCFA"),
+                    ("📊 Taux d'intérêt", f"{interest_rate*100:.2f}% / an"),
+                    ("🛡️ Taux d'assurance", f"{insurance_rate*100:.2f}% / an"),
+                    ("📈 Taux global", f"{global_rate*100:.2f}% / an"),
+                    ("💼 Frais de dossier", f"{processing_fee:,.0f} FCFA"),
+                    ("📅 Durée", f"{duration_years} ans ({duration_months} mois)"),
+                    ("🏦 Groupe client", f"{group_info['group']} (revenu: {client_income:,.0f} FCFA)"),
+                ]
+                
+                for label, value in details:
+                    st.markdown(f'''
+                    <div style="background: white; padding: 12px; border-radius: 10px; margin-bottom: 8px;
+                                border-left: 3px solid #E60028; display: flex; justify-content: space-between;">
+                        <span style="font-weight: 600; color: #333;">{label}</span>
+                        <span style="font-weight: 700; color: #E60028;">{value}</span>
+                    </div>
+                    ''', unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown('<p class="section-header">📈 Analyse & Recommandations</p>', unsafe_allow_html=True)
+                
+                # Évaluation du dossier
+                if debt_ratio <= max_ratio * 0.85:
+                    st.success(f"""
+                    **✅ DOSSIER EXCELLENT**
+                    
+                    Votre taux d'endettement ({debt_ratio:.1f}%) est largement en dessous du maximum autorisé ({max_ratio:.0f}%).
+                    
+                    💰 **Capacité restante:** {max_payment - monthly_payment_total:,.0f} FCFA/mois
+                    
+                    📊 **Vous pourriez emprunter jusqu'à:** {max_loan:,.0f} FCFA
+                    """)
+                elif debt_ratio <= max_ratio:
+                    st.warning(f"""
+                    **⚠️ DOSSIER ACCEPTABLE**
+                    
+                    Votre taux d'endettement ({debt_ratio:.1f}%) est proche du maximum ({max_ratio:.0f}%).
+                    
+                    💡 **Recommandations:**
+                    - Envisager une durée plus longue pour réduire la mensualité
+                    - Augmenter l'apport personnel si possible
+                    - Vérifier la stabilité de vos revenus
+                    """)
+                else:
+                    excess = monthly_payment_total - max_payment
+                    reduced_loan = max_loan * 0.95  # 95% de la capacité max
+                    
+                    st.error(f"""
+                    **❌ DOSSIER À RISQUE**
+                    
+                    Votre taux d'endettement ({debt_ratio:.1f}%) dépasse le maximum autorisé ({max_ratio:.0f}%).
+                    
+                    ⚠️ **Dépassement:** {excess:,.0f} FCFA/mois
+                    
+                    💡 **Solutions:**
+                    - Réduire le montant à {reduced_loan:,.0f} FCFA
+                    - Augmenter la durée à {duration_years + 2} ans
+                    - Ajouter un co-emprunteur
+                    """)
+                
+                # Répartition des coûts
+                st.markdown("### 📊 Répartition des Coûts")
+                
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    pct_interest = (total_interest / total_paid) * 100
+                    st.metric("Intérêts", f"{pct_interest:.1f}%", f"{total_interest:,.0f} FCFA")
+                with col_b:
+                    pct_insurance = (total_insurance / total_paid) * 100
+                    st.metric("Assurance", f"{pct_insurance:.1f}%", f"{total_insurance:,.0f} FCFA")
+                with col_c:
+                    pct_tps = (total_tps / total_paid) * 100
+                    st.metric("TPS", f"{pct_tps:.1f}%", f"{total_tps:,.0f} FCFA")
+            
+            st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+            
+            # Tableau d'amortissement
+            st.markdown('<p class="section-header">📋 Tableau d\'Amortissement Détaillé</p>', unsafe_allow_html=True)
+            
+            # Formatage du DataFrame pour l'affichage
+            display_df = schedule.copy()
+            for col in ['Principal', 'Intérêts', 'Assurance', 'Sous-total HT', 'TPS (10%)', 'Mensualité TTC', 'Capital Restant']:
+                display_df[col] = display_df[col].apply(lambda x: f"{x:,.2f} FCFA")
+            
+            st.dataframe(display_df, width='stretch', height=450)
+            
+            # Résumé du tableau
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.info(f"**📊 Échéances:** {len(schedule)}")
+            with col2:
+                st.info(f"**💰 Intérêts totaux:** {total_interest:,.0f} FCFA")
+            with col3:
+                st.info(f"**🛡️ Assurance totale:** {total_insurance:,.0f} FCFA")
+            with col4:
+                st.info(f"**📄 TPS total:** {total_tps:,.0f} FCFA")
+            
+        else:
+            st.warning("⚠️ Veuillez renseigner le montant du prêt ET votre revenu mensuel pour lancer la simulation.")
+
+# ═══════════════════════════════════════════════════════════════
+# 🚀 MAIN APPLICATION
+# ═══════════════════════════════════════════════════════════════
+
+def main():
+    apply_custom_css()
+    init_session_state()
+    
+    if not st.session_state.authenticated:
+        login_page()
+    else:
+        # Sidebar
+        with st.sidebar:
+            st.markdown(f"""
+            <div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px; margin-bottom: 20px;">
+                <div style="font-size: 3em; margin-bottom: 10px;">👤</div>
+                <div style="font-size: 1.2em; font-weight: 700;">{st.session_state.username}</div>
+                <div style="opacity: 0.9; margin-top: 5px;">{st.session_state.user_role}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("---")
+            
+            if st.button("🚪 DÉCONNEXION", width='stretch'):
+                logout()
+            
+            st.markdown("---")
+            st.markdown("""
+            <div style="text-align: center; opacity: 0.7; font-size: 0.85em; margin-top: 30px;">
+                <p>Société Générale</p>
+                <p>Finance Hub v2.0</p>
+                <p>© 2024</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Header principal
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, {SG_BLACK}, {SG_RED}); color: white; 
+                    padding: 25px 30px; border-radius: 18px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h2 style="margin: 0; font-weight: 800; font-size: 1.8em;">🏦 Société Générale Finance Hub</h2>
+            <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 1.05em;">
+                Bienvenue, <strong>{st.session_state.username}</strong> • {datetime.now().strftime('%A %d %B %Y • %H:%M')}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Module Selection avec tabs améliorés
+        available_modules = []
+        if "salary" in st.session_state.user_modules:
+            available_modules.append("💼 Simulation Salaire")
+        if "loan" in st.session_state.user_modules:
+            available_modules.append("💳 Simulation Prêt")
+        
+        if len(available_modules) > 1:
+            tabs = st.tabs(available_modules)
+            
+            for i, tab in enumerate(tabs):
+                with tab:
+                    if available_modules[i] == "💼 Simulation Salaire":
+                        module_simulation_salaire()
+                    elif available_modules[i] == "💳 Simulation Prêt":
+                        module_simulation_pret()
+        else:
+            if "salary" in st.session_state.user_modules:
+                module_simulation_salaire()
+            elif "loan" in st.session_state.user_modules:
+                module_simulation_pret()
+        
         # Footer
         st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
         st.markdown("""
