@@ -1613,3 +1613,314 @@ def module_simulation_pret():
                 ### 🧮 Méthodologie de Calcul
 
                 **Formule d'annuité constante :**
+A = C × i / [1 - (1 + i)^-n]
+
+text
+où :
+- A = Annuité constante
+- C = Capital emprunté
+- i = Taux mensuel combiné (intérêts + assurance + TPS)
+- n = Nombre de mois
+
+**Taux mensuel combiné :**
+i = (t_intérêt + t_assurance)/12 + t_intérêt × t_TPS/12
+
+text
+
+**Taux Effectif Global (TEG) :**
+TEG = (1 + i_mensuel)^12 - 1
+
+text
+
+**Validations effectuées :**
+1. Cohérence des taux et durées
+2. Respect des ratios d'endettement
+3. Vérification des limites réglementaires
+4. Contrôle de la solvabilité du demandeur
+""")
+
+# ═══════════════════════════════════════════════════════════════
+# 🛡️ MODULE 3 : ADMIN KPI (inchangé)
+# ═══════════════════════════════════════════════════════════════
+
+def module_admin_kpi():
+st.markdown("""
+<div class="admin-hero">
+<h1>🛡️ Administration & KPI d’usage</h1>
+<p>Suivi quotidien de l’adoption, des connexions, des simulations et de l’activité utilisateur.</p>
+</div>
+""", unsafe_allow_html=True)
+
+df = load_usage_logs()
+
+if df.empty:
+st.info("Aucune donnée d’usage disponible pour le moment.")
+return
+
+today = datetime.now().date()
+
+st.markdown('<p class="section-header">🎛️ Filtres d’analyse</p>', unsafe_allow_html=True)
+
+col_f1, col_f2, col_f3 = st.columns(3)
+
+with col_f1:
+selected_period = st.selectbox(
+"Période",
+["Aujourd'hui", "7 derniers jours", "30 derniers jours", "Tout l'historique"]
+)
+
+with col_f2:
+selected_user = st.selectbox(
+"Utilisateur",
+["Tous"] + sorted(df["username"].dropna().unique().tolist())
+)
+
+with col_f3:
+selected_module = st.selectbox(
+"Module",
+["Tous"] + sorted(df["module"].dropna().unique().tolist())
+)
+
+df_filtered = df.copy()
+
+if selected_period == "Aujourd'hui":
+df_filtered = df_filtered[df_filtered["date"] == today]
+elif selected_period == "7 derniers jours":
+start_date = today - timedelta(days=7)
+df_filtered = df_filtered[df_filtered["date"] >= start_date]
+elif selected_period == "30 derniers jours":
+start_date = today - timedelta(days=30)
+df_filtered = df_filtered[df_filtered["date"] >= start_date]
+
+if selected_user != "Tous":
+df_filtered = df_filtered[df_filtered["username"] == selected_user]
+
+if selected_module != "Tous":
+df_filtered = df_filtered[df_filtered["module"] == selected_module]
+
+total_events = len(df_filtered)
+total_logins = len(df_filtered[df_filtered["event_type"] == "login_success"])
+active_users = df_filtered["username"].nunique()
+salary_sims = len(df_filtered[df_filtered["event_type"] == "simulation_salary"])
+loan_sims = len(df_filtered[df_filtered["event_type"] == "simulation_loan"])
+total_sims = salary_sims + loan_sims
+errors = len(df_filtered[df_filtered["event_type"].str.contains("error", na=False)])
+
+st.markdown('<p class="section-header">📌 KPI principaux</p>', unsafe_allow_html=True)
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+st.markdown(f"""
+<div class="kpi-card">
+<div class="kpi-title">Utilisateurs actifs</div>
+<div class="kpi-number">{active_users}</div>
+<div class="kpi-caption">Sur la période filtrée</div>
+</div>
+""", unsafe_allow_html=True)
+
+with col2:
+st.markdown(f"""
+<div class="kpi-card">
+<div class="kpi-title">Connexions réussies</div>
+<div class="kpi-number">{total_logins}</div>
+<div class="kpi-caption">Accès authentifiés</div>
+</div>
+""", unsafe_allow_html=True)
+
+with col3:
+st.markdown(f"""
+<div class="kpi-card">
+<div class="kpi-title">Simulations totales</div>
+<div class="kpi-number">{total_sims}</div>
+<div class="kpi-caption">Salaire + prêt</div>
+</div>
+""", unsafe_allow_html=True)
+
+with col4:
+st.markdown(f"""
+<div class="kpi-card">
+<div class="kpi-title">Erreurs suivies</div>
+<div class="kpi-number">{errors}</div>
+<div class="kpi-caption">Tentatives échouées ou incidents</div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+st.markdown('<p class="section-header">📅 Usage jour par jour</p>', unsafe_allow_html=True)
+
+if not df_filtered.empty:
+daily_usage = (
+df_filtered
+.groupby(["date", "event_type"])
+.size()
+.reset_index(name="volume")
+)
+
+pivot_daily = daily_usage.pivot_table(
+index="date",
+columns="event_type",
+values="volume",
+aggfunc="sum",
+fill_value=0
+)
+
+st.line_chart(pivot_daily)
+
+col_a, col_b = st.columns(2)
+
+with col_a:
+st.markdown('<div class="admin-panel">', unsafe_allow_html=True)
+st.markdown("### 🧭 Répartition par module")
+
+module_usage = df_filtered["module"].value_counts().reset_index()
+module_usage.columns = ["Module", "Volume"]
+
+if not module_usage.empty:
+st.bar_chart(module_usage.set_index("Module"))
+else:
+st.info("Aucune donnée module.")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+with col_b:
+st.markdown('<div class="admin-panel">', unsafe_allow_html=True)
+st.markdown("### 👤 Usage par utilisateur")
+
+user_usage = df_filtered["username"].value_counts().reset_index()
+user_usage.columns = ["Utilisateur", "Volume"]
+
+if not user_usage.empty:
+st.bar_chart(user_usage.set_index("Utilisateur"))
+else:
+st.info("Aucune donnée utilisateur.")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+st.markdown('<p class="section-header">📋 Journal détaillé des événements</p>', unsafe_allow_html=True)
+
+display_logs = df_filtered.sort_values("timestamp", ascending=False).copy()
+
+if not display_logs.empty:
+display_logs["timestamp"] = display_logs["timestamp"].astype(str)
+st.dataframe(display_logs, use_container_width=True, height=420)
+
+csv = df_filtered.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+label="⬇️ Télécharger les logs filtrés",
+data=csv,
+file_name=f"usage_logs_churn_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+mime="text/csv",
+use_container_width=True
+)
+
+else:
+st.info("Aucun événement disponible avec ces filtres.")
+
+# ═══════════════════════════════════════════════════════════════
+# 🧭 SIDEBAR & NAVIGATION
+# ═══════════════════════════════════════════════════════════════
+
+def render_sidebar():
+"""Affiche la barre latérale avec les informations utilisateur et la déconnexion."""
+with st.sidebar:
+st.markdown(f"""
+<div style="text-align:center;padding:22px;
+    background:rgba(255,255,255,0.10);
+    border-radius:18px;margin-bottom:20px;">
+<div style="font-size:3em;margin-bottom:10px;">👤</div>
+<div style="font-size:1.2em;font-weight:900;">{"SEGAH-"+st.session_state.username}</div>
+<div style="opacity:0.88;margin-top:5px;">{st.session_state.user_role}</div>
+<div style="font-size:0.82em;margin-top:8px;opacity:0.72;">
+Session : {st.session_state.session_started_at}
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("---")
+
+if st.button("🚪 DÉCONNEXION", use_container_width=True):
+logout()
+
+st.markdown("---")
+
+st.markdown(f"""
+<div style="text-align:center;opacity:0.75;font-size:0.86em;margin-top:30px;">
+<p><strong>{APP_NAME}</strong> {APP_VERSION}</p>
+<p>Simulation • Crédit • KPI</p>
+<p>© 2026</p>
+</div>
+""", unsafe_allow_html=True)
+
+def render_top_header():
+"""Affiche l'en-tête principal après connexion."""
+st.markdown(f"""
+<div class="top-hero">
+<h1>🏦 {APP_NAME} — Interface V3</h1>
+<p>
+Bienvenue <strong>{st.session_state.username}</strong> • 
+{st.session_state.user_role} • 
+{datetime.now().strftime('%d/%m/%Y %H:%M')}
+</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════
+# 🚀 MAIN APPLICATION
+# ═══════════════════════════════════════════════════════════════
+
+def main():
+"""Point d'entrée de l'application."""
+apply_custom_css()
+init_session_state()
+init_usage_tracking()
+
+if not st.session_state.authenticated:
+login_page()
+return
+
+render_sidebar()
+render_top_header()
+
+# Détermine les onglets disponibles selon les droits
+available_modules = []
+if "salary" in st.session_state.user_modules:
+available_modules.append("💼 Simulation Salaire")
+if "loan" in st.session_state.user_modules:
+available_modules.append("💳 Simulation Prêt")
+if "admin" in st.session_state.user_modules:
+available_modules.append("🛡️ Administration KPI")
+
+if len(available_modules) > 1:
+tabs = st.tabs(available_modules)
+for i, tab in enumerate(tabs):
+with tab:
+if available_modules[i] == "💼 Simulation Salaire":
+    module_simulation_salaire()
+elif available_modules[i] == "💳 Simulation Prêt":
+    module_simulation_pret()
+elif available_modules[i] == "🛡️ Administration KPI":
+    module_admin_kpi()
+else:
+# Un seul module, pas d'onglets
+if "salary" in st.session_state.user_modules:
+module_simulation_salaire()
+elif "loan" in st.session_state.user_modules:
+module_simulation_pret()
+elif "admin" in st.session_state.user_modules:
+module_admin_kpi()
+
+# Pied de page
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+st.markdown(f"""
+<div style="text-align:center;color:#666;font-size:0.9em;padding:18px;">
+<p>🏦 <strong>{APP_NAME} {APP_VERSION}</strong> • Application confidentielle • Tous droits réservés</p>
+</div>
+""", unsafe_allow_html=True)
+
+if __name__ == "__main__":
+main()
